@@ -1,76 +1,49 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <unistd.h>
-#include <string.h>
-#include <gmp.h>
+#!/usr/bin/env bash
+# is a factors challenge
 
-void file_input(char *filename);
-void factors(mpz_t n);
-
-/**
- * file_input - read from file
- * @filename: file to read from
- * Return: line
- */
-
-void file_input(char *filename)
+check_factor()
 {
-	char *line = NULL;
-	mpz_t bsize = 0;
-	mpz_t line_to_num;
-	FILE *fp;
+	if [ $# -ne 3 ];
+        then
+                args=("$@")
+                count=0
+                num2=1
+                for a in ${args[*]};
+                do
+                        if [ $count -gt 1 ];
+                        then
+                                num2=$(echo $a*$num2 | bc)
+                        fi
+                        count=$((count + 1))
+                done
+        else
+                num2=$3
+        fi
 
-	if (filename == NULL)
-		return;
+        num1=$2
+        num=$(echo "$1" | tr ':' '=')
 
-	fp = fopen(filename, "r");
-	if (fp == NULL)
-		return;
+        result=$(echo "if($num2 > $num1) 1 else 0" | bc)
+	        if ((result == 1)); then
+		        numcp=$num1
+		        num1=$num2
+		        num2=$numcp
+                fi
 
-	while (getline(&line, &bsize, fp) != -1)
-	{
-		mpz_init_set_str(line_to_num, line, 10);
-		factors(line_to_num);
-	}
-
-	fclose(fp);
+        echo "$num$num1*$num2"
 }
 
+if [ $# -ne 1 ]
+then
+        echo 'Usage: factors <file>'
+        exit 1
+else
 
-/**
- * factors - factors the nums
- * @n: number to factor
- * Return: VOID
- */
+        while read i
+        do
 
-void factors(mpz_t n)
-{
-	mpz_t i;
+                result=$(factor "$i")
+                check_factor $result
 
-	for (i = 2; i < n; i++)
-	{
-		if (n == ((n / i) * i))
-		{
-			printf("%ld=%ld*%ld\n", n, (n / i), i);
-			break;
-		}
-	}
-}
-
-/**
- * main - main
- * @i: i
- * @av: arg
- * Return: return (0) on success
- */
-
-int main(char **av)
-{
-    if (av[1] != NULL)
-	   file_input(av[1]);
-
-	return (0);
-}
+        done < "$1"
+fi
